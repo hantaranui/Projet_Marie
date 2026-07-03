@@ -28,6 +28,9 @@ var STATUT_TEXT_COLORS = { 'Nouveau (à valider)': '#666666' };
 var STATUT_ENVOI_COLORS = { 'En attente': '#CCCCCC', 'Envoyé': '#16B378', 'Erreur': '#D9534F' };
 var TYPE_EMAIL_COLORS = { officiel: '#16B378', générique: '#5BC0DE', reconstitué: '#F0AD4E', corrigé: '#5CB85C' };
 
+var FORMAT_EMAIL_CHOICES = ['prenom.nom', 'p.nom', 'prenom_nom', 'initiale+nom', 'autre'];
+var STATUT_ENRICHISSEMENT_CHOICES = ['À enrichir', 'En cours', 'Terminé', 'Erreur'];
+
 var departements = [];
 var departementsById = {};
 var contacts = [];
@@ -698,6 +701,24 @@ function renderSettingsTab() {
 
   html += '<div style="margin-top:16px;"><button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button></div>';
   html += '</div>';
+
+  html += '<div class="settings-form" style="margin-top:20px;">';
+  html += '<div class="toolbar" style="margin-bottom:10px;"><strong style="flex:1;">Départements</strong><button class="btn btn-primary btn-sm" onclick="openDepartementModal()">+ Ajouter un département</button></div>';
+  html += '<table class="contacts-table"><thead><tr><th>Nom</th><th>Structure</th><th>Code</th><th>Domaine e-mail</th><th>Format e-mail</th><th>Enrichissement</th><th></th></tr></thead><tbody>';
+  departements.forEach(function (d) {
+    html += '<tr>';
+    html += '<td>' + esc(d.Nom) + '</td>';
+    html += '<td>' + esc(d.Structure) + '</td>';
+    html += '<td>' + esc(d.Code_departement) + '</td>';
+    html += '<td class="email-cell">' + esc(d.Domaine_email) + '</td>';
+    html += '<td>' + esc(d.Format_email || '—') + '</td>';
+    html += '<td>' + badge(d.Statut_enrichissement, { 'À enrichir': '#CCCCCC', 'En cours': '#5BC0DE', 'Terminé': '#16B378', 'Erreur': '#D9534F' }[d.Statut_enrichissement]) + '</td>';
+    html += '<td><button class="btn btn-sm" onclick="openDepartementModal(' + d.id + ')">✏️</button></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '</div>';
+
   container.innerHTML = html;
 }
 
@@ -714,6 +735,102 @@ async function saveSettings() {
   await loadAllData();
   showToast('Paramètres enregistrés.', 'success');
   renderSettingsTab();
+}
+
+// =============================================================================
+// DÉPARTEMENTS (ajout/édition depuis Paramètres)
+// =============================================================================
+
+function openDepartementModal(id) {
+  var d = id ? departementsById[id] : null;
+  var modalContainer = document.getElementById('modal-container');
+  var html = '<div class="modal-overlay" onclick="if(event.target===this) closeModal()">';
+  html += '<div class="modal">';
+  html += '<div class="modal-header"><h2>' + (d ? 'Modifier le département' : 'Nouveau département') + '</h2><button class="modal-close" onclick="closeModal()">✕</button></div>';
+  html += '<div class="modal-body">';
+
+  html += '<div class="field-label">Nom *</div>';
+  html += '<input type="text" id="dep-nom" value="' + (d ? esc(d.Nom) : '') + '" placeholder="ex. Essonne">';
+  html += '<div class="field-label">Structure (code court)</div>';
+  html += '<input type="text" id="dep-structure" value="' + (d ? esc(d.Structure) : '') + '" placeholder="ex. CD91">';
+  html += '<div class="field-label">Code département</div>';
+  html += '<input type="text" id="dep-code" value="' + (d ? esc(d.Code_departement) : '') + '" placeholder="ex. 91">';
+  html += '<div class="field-label">Nom complet de la structure</div>';
+  html += '<input type="text" id="dep-nom-structure" value="' + (d ? esc(d.Nom_Structure) : '') + '" placeholder="ex. Conseil départemental de l\'Essonne">';
+  html += '<div class="field-label">Site officiel</div>';
+  html += '<input type="text" id="dep-site" value="' + (d ? esc(d.Site_officiel) : '') + '" placeholder="https://...">';
+  html += '<div class="field-label">Domaine e-mail *</div>';
+  html += '<input type="text" id="dep-domaine" value="' + (d ? esc(d.Domaine_email) : '') + '" placeholder="ex. essonne.fr">';
+
+  html += '<div class="field-label">Format e-mail</div>';
+  html += '<select id="dep-format"><option value="">Non confirmé</option>';
+  FORMAT_EMAIL_CHOICES.forEach(function (f) {
+    html += '<option value="' + esc(f) + '"' + (d && d.Format_email === f ? ' selected' : '') + '>' + esc(f) + '</option>';
+  });
+  html += '</select>';
+
+  html += '<div class="field-label">Mots-clés de recherche</div>';
+  html += '<input type="text" id="dep-motscles" value="' + (d ? esc(d.Mots_cles_recherche) : '') + '">';
+
+  html += '<div class="field-label">Statut d\'enrichissement</div>';
+  html += '<select id="dep-statut-enrichissement">';
+  STATUT_ENRICHISSEMENT_CHOICES.forEach(function (s) {
+    html += '<option value="' + esc(s) + '"' + (d ? (d.Statut_enrichissement === s ? ' selected' : '') : (s === 'À enrichir' ? ' selected' : '')) + '>' + esc(s) + '</option>';
+  });
+  html += '</select>';
+
+  html += '</div>';
+  html += '<div class="modal-footer">';
+  if (d) html += '<button class="btn btn-danger" onclick="deleteDepartement(' + d.id + ')">Supprimer</button>';
+  html += '<button class="btn" onclick="closeModal()">Annuler</button>';
+  html += '<button class="btn btn-primary" onclick="submitDepartement(' + (d ? d.id : 'null') + ')">Enregistrer</button>';
+  html += '</div></div></div>';
+
+  modalContainer.innerHTML = html;
+}
+
+async function submitDepartement(id) {
+  var nom = document.getElementById('dep-nom').value.trim();
+  var domaine = document.getElementById('dep-domaine').value.trim();
+  if (!nom) { showToast('Le nom du département est obligatoire.', 'error'); return; }
+  if (!domaine) { showToast('Le domaine e-mail est obligatoire.', 'error'); return; }
+
+  var fields = {
+    Nom: nom,
+    Structure: document.getElementById('dep-structure').value.trim(),
+    Code_departement: document.getElementById('dep-code').value.trim(),
+    Nom_Structure: document.getElementById('dep-nom-structure').value.trim(),
+    Site_officiel: document.getElementById('dep-site').value.trim(),
+    Domaine_email: domaine,
+    Format_email: document.getElementById('dep-format').value,
+    Mots_cles_recherche: document.getElementById('dep-motscles').value.trim(),
+    Statut_enrichissement: document.getElementById('dep-statut-enrichissement').value
+  };
+
+  if (id) {
+    await grist.docApi.applyUserActions([['UpdateRecord', DEPARTEMENTS_TABLE, id, fields]]);
+  } else {
+    await grist.docApi.applyUserActions([['AddRecord', DEPARTEMENTS_TABLE, null, fields]]);
+  }
+
+  closeModal();
+  await loadAllData();
+  renderSettingsTab();
+  showToast('Département enregistré.', 'success');
+}
+
+async function deleteDepartement(id) {
+  var linked = contacts.filter(function (c) { return c.Departement === id; }).length;
+  if (linked > 0) {
+    showToast(linked + ' contact(s) sont rattachés à ce département — réassignez-les ou supprimez-les avant de pouvoir supprimer ce département.', 'error', 6000);
+    return;
+  }
+  if (!confirm('Supprimer ce département ?')) return;
+  await grist.docApi.applyUserActions([['RemoveRecord', DEPARTEMENTS_TABLE, id]]);
+  closeModal();
+  await loadAllData();
+  renderSettingsTab();
+  showToast('Département supprimé.', 'success');
 }
 
 // =============================================================================
