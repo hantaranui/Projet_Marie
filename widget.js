@@ -333,6 +333,8 @@ function openSendModal(singleContactId) {
 
   var selectedTemplateId = currentTemplateId || (templates[0] && templates[0].id);
   var sample = eligible.length ? contactsById[eligible[0]] : null;
+  var isSingle = ids.length === 1 && eligible.length === 1;
+  window._sendMode = 'template';
 
   var modalContainer = document.getElementById('modal-container');
   var html = '<div class="modal-overlay" onclick="if(event.target===this) closeModal()">';
@@ -353,14 +355,31 @@ function openSendModal(singleContactId) {
     }
   }
 
+  if (isSingle) {
+    html += '<div class="toolbar" style="margin-bottom:10px;">';
+    html += '<button type="button" class="btn btn-sm btn-primary" id="mode-btn-template" onclick="setSendMode(\'template\')">📋 Modèle</button>';
+    html += '<button type="button" class="btn btn-sm" id="mode-btn-custom" onclick="setSendMode(\'custom\')">✏️ Email personnalisé</button>';
+    html += '</div>';
+  }
+
+  html += '<div id="send-template-block">';
   html += '<div class="field-label">Modèle</div>';
   html += '<select id="send-template-select" onchange="refreshSendPreview()">';
   templates.forEach(function (t) {
     html += '<option value="' + t.id + '"' + (t.id === selectedTemplateId ? ' selected' : '') + '>' + esc(t.Nom) + '</option>';
   });
   html += '</select>';
-
   html += '<div id="send-preview"></div>';
+  html += '</div>';
+
+  html += '<div id="send-custom-block" class="hidden">';
+  html += '<div class="field-label">Sujet</div>';
+  html += '<input type="text" id="custom-sujet" placeholder="Objet de l\'email">';
+  html += '<div class="field-label">Message</div>';
+  html += '<textarea id="custom-corps" style="width:100%; min-height:220px; padding:8px 10px; border:1px solid var(--color-border); border-radius:8px;" placeholder="Écrivez votre message pour ' + (sample ? esc(sample.Prenom + ' ' + sample.Nom) : 'ce contact') + '"></textarea>';
+  html += '<div id="custom-warning"></div>';
+  html += '<div class="variables-hint">Vous pouvez aussi utiliser <code>{Prenom}</code>, <code>{Nom}</code>, <code>{Titre}</code>, <code>{Collectivite}</code> si besoin — le lien de désinscription est ajouté automatiquement en pied de message s\'il est absent.</div>';
+  html += '</div>';
 
   html += '</div>';
   html += '<div class="modal-footer">';
@@ -374,7 +393,30 @@ function openSendModal(singleContactId) {
   refreshSendPreview();
 }
 
+function setSendMode(mode) {
+  window._sendMode = mode;
+  document.getElementById('send-template-block').classList.toggle('hidden', mode !== 'template');
+  document.getElementById('send-custom-block').classList.toggle('hidden', mode !== 'custom');
+  var tBtn = document.getElementById('mode-btn-template');
+  var cBtn = document.getElementById('mode-btn-custom');
+  if (tBtn) tBtn.classList.toggle('btn-primary', mode === 'template');
+  if (cBtn) cBtn.classList.toggle('btn-primary', mode === 'custom');
+  if (mode === 'custom') refreshCustomWarning();
+}
+
+function refreshCustomWarning() {
+  var warn = document.getElementById('custom-warning');
+  if (!warn) return;
+  var sample = window._sendModalSample;
+  if (sample && !sample.Lien_Desinscription) {
+    warn.innerHTML = '<div class="warning-box">Ce contact n\'a pas encore de lien de désinscription (webhook de désinscription non configuré dans Paramètres) — l\'email partira sans, à corriger avant tout envoi réel.</div>';
+  } else {
+    warn.innerHTML = '';
+  }
+}
+
 function refreshSendPreview() {
+  if (window._sendMode === 'custom') return;
   var select = document.getElementById('send-template-select');
   if (!select) return;
   var templateId = Number(select.value);
@@ -403,9 +445,16 @@ function closeModal() {
 }
 
 async function confirmSend(eligibleIds) {
-  var templateId = Number(document.getElementById('send-template-select').value);
-  var template = templatesById[templateId];
-  if (!template) { showToast('Modèle introuvable.', 'error'); return; }
+  var template;
+  if (window._sendMode === 'custom' && eligibleIds.length === 1) {
+    var customCorps = document.getElementById('custom-corps').value;
+    if (!customCorps.trim()) { showToast('Le message est vide.', 'error'); return; }
+    template = { Sujet: document.getElementById('custom-sujet').value, Corps: customCorps };
+  } else {
+    var templateId = Number(document.getElementById('send-template-select').value);
+    template = templatesById[templateId];
+    if (!template) { showToast('Modèle introuvable.', 'error'); return; }
+  }
 
   if (eligibleIds.length === 1 && !parametres.Webhook_Envoi_URL) {
     // Fallback mailto pour un envoi ponctuel
