@@ -207,6 +207,7 @@ function renderContactsTab() {
 
   html += '<span class="hint">' + filtered.length + ' contact(s)</span>';
   html += '<div class="spacer"></div>';
+  html += '<button class="btn btn-primary btn-sm" onclick="openNewContactModal()">+ Nouveau contact</button>';
   html += '</div>';
 
   // --- Barre de sélection / actions groupées ---
@@ -224,8 +225,9 @@ function renderContactsTab() {
   html += '</div>';
 
   // --- Table ---
+  var allVisibleSelected = filtered.length > 0 && filtered.every(function (c) { return !!selectedIds[c.id]; });
   html += '<div style="overflow:auto; max-height: 60vh;"><table class="contacts-table"><thead><tr>';
-  html += '<th><input type="checkbox" id="select-all" onchange="toggleSelectAllVisible(this.checked)"></th>';
+  html += '<th><input type="checkbox" id="select-all" ' + (allVisibleSelected ? 'checked' : '') + ' onchange="toggleSelectAllVisible(this.checked)"></th>';
   html += '<th>Collectivité</th><th>Structure</th><th>Prénom</th><th>Nom</th><th>Titre</th><th>Email à utiliser</th>';
   html += '<th>Confiance</th><th>Type</th><th>Statut</th><th>Réponse</th><th>Envoi</th><th></th>';
   html += '</tr></thead><tbody>';
@@ -318,6 +320,94 @@ async function markOppositionSelection() {
   ids.forEach(function (id) { contactsById[id].Opposition = true; contactsById[id].Statut = 'Opposition/refus'; });
   showToast(ids.length + ' contact(s) marqué(s) en opposition.', 'success');
   renderContactsTab();
+}
+
+// =============================================================================
+// NOUVEAU CONTACT (formulaire manuel)
+// =============================================================================
+
+var TYPE_EMAIL_CHOICES = ['officiel', 'générique', 'reconstitué', 'corrigé'];
+
+function openNewContactModal() {
+  var modalContainer = document.getElementById('modal-container');
+  var html = '<div class="modal-overlay" onclick="if(event.target===this) closeModal()">';
+  html += '<div class="modal">';
+  html += '<div class="modal-header"><h2>Nouveau contact</h2><button class="modal-close" onclick="closeModal()">✕</button></div>';
+  html += '<div class="modal-body">';
+
+  html += '<div class="field-label">Département *</div>';
+  html += '<select id="nc-departement">';
+  departements.forEach(function (d) {
+    html += '<option value="' + d.id + '">' + esc(d.Nom) + '</option>';
+  });
+  html += '</select>';
+
+  html += '<div class="field-label">Prénom *</div>';
+  html += '<input type="text" id="nc-prenom">';
+  html += '<div class="field-label">Nom *</div>';
+  html += '<input type="text" id="nc-nom">';
+  html += '<div class="field-label">Titre</div>';
+  html += '<input type="text" id="nc-titre">';
+  html += '<div class="field-label">Service ciblé</div>';
+  html += '<input type="text" id="nc-service">';
+
+  html += '<div class="field-label">Email (laisser vide pour laisser la formule le déduire automatiquement)</div>';
+  html += '<input type="text" id="nc-email" placeholder="ex. prenom.nom@domaine.fr">';
+
+  html += '<div class="field-label">Type d\'e-mail</div>';
+  html += '<select id="nc-type"><option value="">Automatique (déduit de l\'e-mail saisi)</option>';
+  TYPE_EMAIL_CHOICES.forEach(function (t) {
+    html += '<option value="' + esc(t) + '">' + esc(t) + '</option>';
+  });
+  html += '</select>';
+  html += '<div class="variables-hint">Si "officiel", l\'e-mail saisi est repris exactement tel quel dans Email à utiliser (pas de mise en minuscule) — utilisez ce choix quand vous copiez une adresse trouvée telle quelle sur une source officielle.</div>';
+
+  html += '</div>';
+  html += '<div class="modal-footer">';
+  html += '<button class="btn" onclick="closeModal()">Annuler</button>';
+  html += '<button class="btn btn-primary" onclick="submitNewContact()">Ajouter</button>';
+  html += '</div></div></div>';
+
+  modalContainer.innerHTML = html;
+}
+
+async function submitNewContact() {
+  var departementId = Number(document.getElementById('nc-departement').value);
+  var prenom = document.getElementById('nc-prenom').value.trim();
+  var nom = document.getElementById('nc-nom').value.trim();
+  var titre = document.getElementById('nc-titre').value.trim();
+  var service = document.getElementById('nc-service').value.trim();
+  var email = document.getElementById('nc-email').value.trim();
+  var typeChoice = document.getElementById('nc-type').value;
+
+  if (!departementId) { showToast('Choisissez un département.', 'error'); return; }
+  if (!prenom || !nom) { showToast('Prénom et Nom sont obligatoires.', 'error'); return; }
+
+  var fields = {
+    Departement: departementId,
+    Prenom: prenom,
+    Nom: nom,
+    Titre: titre,
+    Service: service,
+    Statut: 'Nouveau (à valider)',
+    Statut_envoi: 'En attente',
+    Reponse: 'Pas de réponse'
+  };
+  if (email) fields.Email_corrige = email;
+
+  var result = await grist.docApi.applyUserActions([['AddRecord', CONTACTS_TABLE, null, fields]]);
+  var newId = result.retValues[0];
+
+  // Le Type_email se recalcule automatiquement à la création (trigger) ; s'il faut un
+  // choix précis (ex. "officiel"), on l'applique après coup pour qu'il ne soit pas écrasé.
+  if (typeChoice) {
+    await grist.docApi.applyUserActions([['UpdateRecord', CONTACTS_TABLE, newId, { Type_email: typeChoice }]]);
+  }
+
+  closeModal();
+  await loadAllData();
+  renderCurrentTab();
+  showToast('Contact ajouté.', 'success');
 }
 
 // =============================================================================
