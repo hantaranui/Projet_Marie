@@ -354,7 +354,7 @@ function openNewContactModal() {
   html += '<div class="field-label">Service ciblé</div>';
   html += '<input type="text" id="nc-service">';
 
-  html += '<div class="field-label">Email (laisser vide pour laisser la formule le déduire automatiquement)</div>';
+  html += '<div class="field-label">Email trouvée (laisser vide pour laisser la formule le déduire automatiquement)</div>';
   html += '<input type="text" id="nc-email" placeholder="ex. prenom.nom@domaine.fr">';
 
   html += '<div class="field-label">Type d\'e-mail</div>';
@@ -396,7 +396,7 @@ async function submitNewContact() {
     Statut_envoi: 'En attente',
     Reponse: 'Pas de réponse'
   };
-  if (email) fields.Email_corrige = email;
+  if (email) fields.Email_trouvee = email;
 
   var result = await grist.docApi.applyUserActions([['AddRecord', CONTACTS_TABLE, null, fields]]);
   var newId = result.retValues[0];
