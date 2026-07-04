@@ -98,6 +98,11 @@ function todayGristValue() {
   return dateToGristValue(iso);
 }
 
+function gristValueToDateInput(v) {
+  if (!v && v !== 0) return '';
+  return new Date(v * 1000).toISOString().slice(0, 10);
+}
+
 function fillTemplate(str, contact) {
   if (!str) return '';
   return str.replace(/\{(\w+)\}/g, function (match, key) {
@@ -229,16 +234,16 @@ function renderContactsTab() {
 
   // --- Table ---
   var allVisibleSelected = filtered.length > 0 && filtered.every(function (c) { return !!selectedIds[c.id]; });
-  html += '<div style="overflow:auto; max-height: 60vh;"><table class="contacts-table"><thead><tr>';
-  html += '<th><input type="checkbox" id="select-all" ' + (allVisibleSelected ? 'checked' : '') + ' onchange="toggleSelectAllVisible(this.checked)"></th>';
+  html += '<div class="contacts-table-wrapper"><table class="contacts-table"><thead><tr>';
+  html += '<th><input type="checkbox" id="select-all" ' + (allVisibleSelected ? 'checked' : '') + ' onchange="event.stopPropagation(); toggleSelectAllVisible(this.checked)"></th>';
   html += '<th>Collectivité</th><th>Structure</th><th>Prénom</th><th>Nom</th><th>Titre</th><th>Email à utiliser</th>';
   html += '<th>Confiance</th><th>Type</th><th>Statut</th><th>Réponse</th><th>Envoi</th><th></th>';
   html += '</tr></thead><tbody>';
 
   filtered.forEach(function (c) {
     var checked = !!selectedIds[c.id];
-    html += '<tr>';
-    html += '<td><input type="checkbox" class="row-select" data-id="' + c.id + '" ' + (checked ? 'checked' : '') + ' onchange="toggleRowSelect(' + c.id + ', this.checked)"></td>';
+    html += '<tr onclick="openContactDetailModal(' + c.id + ')">';
+    html += '<td onclick="event.stopPropagation()"><input type="checkbox" class="row-select" data-id="' + c.id + '" ' + (checked ? 'checked' : '') + ' onchange="toggleRowSelect(' + c.id + ', this.checked)"></td>';
     html += '<td>' + esc(c.Collectivite) + '</td>';
     html += '<td>' + esc(c.Structure) + '</td>';
     html += '<td>' + esc(c.Prenom) + '</td>';
@@ -247,10 +252,10 @@ function renderContactsTab() {
     html += '<td class="email-cell">' + esc(c.Email_a_utiliser) + '</td>';
     html += '<td>' + badge(c.Score_confiance ? c.Score_confiance.split(' - ')[0] + '%' : '—', scoreColor(c.Score_confiance)) + '</td>';
     html += '<td>' + badge(c.Type_email, TYPE_EMAIL_COLORS[c.Type_email]) + '</td>';
-    html += '<td>' + selectMini(c.id, 'Statut', STATUT_CHOICES, c.Statut) + '</td>';
-    html += '<td>' + selectMini(c.id, 'Reponse', REPONSE_CHOICES, c.Reponse) + '</td>';
+    html += '<td onclick="event.stopPropagation()">' + selectMini(c.id, 'Statut', STATUT_CHOICES, c.Statut) + '</td>';
+    html += '<td onclick="event.stopPropagation()">' + selectMini(c.id, 'Reponse', REPONSE_CHOICES, c.Reponse) + '</td>';
     html += '<td>' + badge(c.Statut_envoi, STATUT_ENVOI_COLORS[c.Statut_envoi]) + (c.Erreur_envoi ? ' <span title="' + esc(c.Erreur_envoi) + '">⚠️</span>' : '') + '</td>';
-    html += '<td><button class="btn btn-sm" onclick="openSendModal(' + c.id + ')">✉️</button></td>';
+    html += '<td onclick="event.stopPropagation()"><button class="btn btn-sm" onclick="openSendModal(' + c.id + ')">✉️</button></td>';
     html += '</tr>';
   });
 
@@ -411,6 +416,122 @@ async function submitNewContact() {
   await loadAllData();
   renderCurrentTab();
   showToast('Contact ajouté.', 'success');
+}
+
+// =============================================================================
+// FICHE CONTACT (clic sur une ligne)
+// =============================================================================
+
+function selectOptions(id, choices, current, includeBlank) {
+  var html = '<select id="' + id + '">';
+  if (includeBlank) html += '<option value=""' + (!current ? ' selected' : '') + '>—</option>';
+  choices.forEach(function (choice) {
+    html += '<option value="' + esc(choice) + '"' + (choice === current ? ' selected' : '') + '>' + esc(choice) + '</option>';
+  });
+  html += '</select>';
+  return html;
+}
+
+function openContactDetailModal(id) {
+  var c = contactsById[id];
+  if (!c) return;
+  var modalContainer = document.getElementById('modal-container');
+
+  var html = '<div class="modal-overlay" onclick="if(event.target===this) closeModal()">';
+  html += '<div class="modal modal-wide">';
+  html += '<div class="modal-header"><h2>' + esc((c.Prenom + ' ' + c.Nom).trim() || 'Contact') + '</h2><button class="modal-close" onclick="closeModal()">✕</button></div>';
+  html += '<div class="modal-body"><div class="form-grid">';
+
+  html += '<div><div class="field-label">Département</div><select id="fc-departement">';
+  departements.forEach(function (d) {
+    html += '<option value="' + d.id + '"' + (c.Departement === d.id ? ' selected' : '') + '>' + esc(d.Nom) + '</option>';
+  });
+  html += '</select></div>';
+  html += '<div><div class="field-label">Service ciblé</div><input type="text" id="fc-service" value="' + esc(c.Service) + '"></div>';
+
+  html += '<div><div class="field-label">Prénom</div><input type="text" id="fc-prenom" value="' + esc(c.Prenom) + '"></div>';
+  html += '<div><div class="field-label">Nom</div><input type="text" id="fc-nom" value="' + esc(c.Nom) + '"></div>';
+
+  html += '<div class="field-full"><div class="field-label">Titre</div><input type="text" id="fc-titre" value="' + esc(c.Titre) + '"></div>';
+
+  html += '<div><div class="field-label">Email corrigé (correction manuelle)</div><input type="text" id="fc-email-corrige" value="' + esc(c.Email_corrige) + '"></div>';
+  html += '<div><div class="field-label">Email trouvée (n8n / à la création)</div><input type="text" id="fc-email-trouvee" value="' + esc(c.Email_trouvee) + '"></div>';
+
+  html += '<div><div class="field-label">Type d\'e-mail</div>' + selectOptions('fc-type', TYPE_EMAIL_CHOICES, c.Type_email, true) + '</div>';
+  html += '<div><div class="field-label">Score de confiance</div>' + selectOptions('fc-score', ['100 - Email trouvé officiellement sur le site', '90 - Email corrigé par humain / validé Hunter.io', '80 - Format email confirmé sur le même domaine', '60 - Email reconstitué sans validation', '40 - Nom trouvé mais email incertain', '20 - Aucune source fiable'], c.Score_confiance, true) + '</div>';
+
+  html += '<div class="field-full"><div class="field-label">Email à utiliser (calculé automatiquement)</div><div class="readonly-field">' + esc(c.Email_a_utiliser || '—') + '</div></div>';
+
+  html += '<div><div class="field-label">Statut</div>' + selectOptions('fc-statut', STATUT_CHOICES, c.Statut, false) + '</div>';
+  html += '<div><div class="field-label">Réponse</div>' + selectOptions('fc-reponse', REPONSE_CHOICES, c.Reponse, false) + '</div>';
+
+  html += '<div><div class="field-label">Source (email)</div><input type="text" id="fc-source-email" value="' + esc(c.Source_email) + '"></div>';
+  html += '<div><div class="field-label">Source (nom/poste)</div><input type="text" id="fc-source-nom" value="' + esc(c.Source_nom) + '"></div>';
+
+  html += '<div><div class="field-label">Date d\'envoi</div><input type="date" id="fc-date-envoi" value="' + gristValueToDateInput(c.Date_Envoi) + '"></div>';
+  html += '<div><div class="field-label">Date de réponse</div><input type="date" id="fc-date-reponse" value="' + gristValueToDateInput(c.Date_reponse) + '"></div>';
+
+  html += '<div class="field-full"><label style="display:flex; align-items:center; gap:8px; font-size:13px;"><input type="checkbox" id="fc-opposition" ' + (c.Opposition ? 'checked' : '') + ' style="width:auto;"> Opposition exprimée (ne plus jamais recontacter)</label></div>';
+  html += '<div class="field-full"><div class="field-label">Motif de ne pas contacter</div><input type="text" id="fc-motif" value="' + esc(c.Motif_ne_pas_contacter) + '"></div>';
+
+  html += '<div class="field-full" style="display:flex; gap:16px; font-size:12px; color:var(--color-text-muted); margin-top:6px;">';
+  html += '<span>Collectivité : <strong>' + esc(c.Collectivite) + '</strong></span>';
+  html += '<span>Structure : <strong>' + esc(c.Structure) + '</strong></span>';
+  html += '<span>Statut d\'envoi : <strong>' + esc(c.Statut_envoi) + '</strong></span>';
+  html += '</div>';
+  if (c.Erreur_envoi) html += '<div class="field-full error-box">Erreur d\'envoi : ' + esc(c.Erreur_envoi) + '</div>';
+
+  html += '</div></div>';
+  html += '<div class="modal-footer">';
+  html += '<button class="btn btn-danger" onclick="deleteContact(' + id + ')">Supprimer</button>';
+  html += '<button class="btn" onclick="closeModal()">Annuler</button>';
+  html += '<button class="btn btn-primary" onclick="submitContactDetail(' + id + ')">Enregistrer</button>';
+  html += '</div></div></div>';
+
+  modalContainer.innerHTML = html;
+}
+
+async function submitContactDetail(id) {
+  var dateEnvoi = document.getElementById('fc-date-envoi').value;
+  var dateReponse = document.getElementById('fc-date-reponse').value;
+
+  var fields = {
+    Departement: Number(document.getElementById('fc-departement').value),
+    Service: document.getElementById('fc-service').value.trim(),
+    Prenom: document.getElementById('fc-prenom').value.trim(),
+    Nom: document.getElementById('fc-nom').value.trim(),
+    Titre: document.getElementById('fc-titre').value.trim(),
+    Email_corrige: document.getElementById('fc-email-corrige').value.trim(),
+    Email_trouvee: document.getElementById('fc-email-trouvee').value.trim(),
+    Type_email: document.getElementById('fc-type').value,
+    Score_confiance: document.getElementById('fc-score').value,
+    Statut: document.getElementById('fc-statut').value,
+    Reponse: document.getElementById('fc-reponse').value,
+    Source_email: document.getElementById('fc-source-email').value.trim(),
+    Source_nom: document.getElementById('fc-source-nom').value.trim(),
+    Date_Envoi: dateEnvoi ? dateToGristValue(dateEnvoi) : null,
+    Date_reponse: dateReponse ? dateToGristValue(dateReponse) : null,
+    Opposition: document.getElementById('fc-opposition').checked,
+    Motif_ne_pas_contacter: document.getElementById('fc-motif').value.trim()
+  };
+
+  if (!fields.Prenom || !fields.Nom) { showToast('Prénom et Nom sont obligatoires.', 'error'); return; }
+
+  await grist.docApi.applyUserActions([['UpdateRecord', CONTACTS_TABLE, id, fields]]);
+
+  closeModal();
+  await loadAllData();
+  renderCurrentTab();
+  showToast('Contact mis à jour.', 'success');
+}
+
+async function deleteContact(id) {
+  if (!confirm('Supprimer définitivement ce contact ?')) return;
+  await grist.docApi.applyUserActions([['RemoveRecord', CONTACTS_TABLE, id]]);
+  closeModal();
+  await loadAllData();
+  renderCurrentTab();
+  showToast('Contact supprimé.', 'success');
 }
 
 // =============================================================================
