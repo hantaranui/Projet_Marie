@@ -470,6 +470,7 @@ function openContactDetailModal(id) {
   html += '<div class="form-field"><label>Service ciblé</label><input type="text" id="fc-service" value="' + esc(c.Service) + '"></div>';
   html += '<div class="form-field"><label>Prénom</label><input type="text" id="fc-prenom" value="' + esc(c.Prenom) + '"></div>';
   html += '<div class="form-field"><label>Nom</label><input type="text" id="fc-nom" value="' + esc(c.Nom) + '"></div>';
+  html += '<div class="form-field"><label>Civilité (' + (c.Civilite || 'inconnue') + ' — corriger si besoin)</label>' + selectOptions('fc-civilite', ['Monsieur', 'Madame'], c.Civilite_corrigee, true) + '</div>';
   html += '<div class="form-field form-field-full"><label>Titre</label><input type="text" id="fc-titre" value="' + esc(c.Titre) + '"></div>';
 
   html += '<div class="form-section-title">Adresse e-mail</div>';
@@ -515,6 +516,7 @@ async function submitContactDetail(id) {
     Service: document.getElementById('fc-service').value.trim(),
     Prenom: document.getElementById('fc-prenom').value.trim(),
     Nom: document.getElementById('fc-nom').value.trim(),
+    Civilite_corrigee: document.getElementById('fc-civilite').value,
     Titre: document.getElementById('fc-titre').value.trim(),
     Email_corrige: document.getElementById('fc-email-corrige').value.trim(),
     Email_trouvee: document.getElementById('fc-email-trouvee').value.trim(),
@@ -610,7 +612,7 @@ function openSendModal(singleContactId) {
   html += '<div class="field-label">Message</div>';
   html += '<textarea id="custom-corps" style="width:100%; min-height:220px; padding:8px 10px; border:1px solid var(--color-border); border-radius:8px;" placeholder="Écrivez votre message pour ' + (sample ? esc(sample.Prenom + ' ' + sample.Nom) : 'ce contact') + '"></textarea>';
   html += '<div id="custom-warning"></div>';
-  html += '<div class="variables-hint">Vous pouvez aussi utiliser <code>{Prenom}</code>, <code>{Nom}</code>, <code>{Titre}</code>, <code>{Collectivite}</code> si besoin — le lien de désinscription est ajouté automatiquement en pied de message s\'il est absent.</div>';
+  html += '<div class="variables-hint">Vous pouvez aussi utiliser <code>{Civilite}</code>, <code>{Prenom}</code>, <code>{Nom}</code>, <code>{Titre}</code>, <code>{Collectivite}</code> si besoin — le lien de désinscription est ajouté automatiquement en pied de message s\'il est absent.</div>';
   html += '</div>';
 
   html += '</div>';
@@ -776,7 +778,7 @@ function renderTemplatesTab() {
     html += '<input type="text" id="tpl-sujet" value="' + esc(current.Sujet) + '">';
     html += '<div class="field-label">Corps</div>';
     html += '<textarea id="tpl-corps">' + esc(current.Corps) + '</textarea>';
-    html += '<div class="variables-hint">Variables disponibles : <code>{Prenom}</code> <code>{Nom}</code> <code>{Titre}</code> <code>{Structure}</code> <code>{Collectivite}</code> <code>{Email_a_utiliser}</code> <code>{Lien_Desinscription}</code>. Le lien de désinscription est ajouté automatiquement en pied de message s\'il est absent.</div>';
+    html += '<div class="variables-hint">Variables disponibles : <code>{Civilite}</code> <code>{Prenom}</code> <code>{Nom}</code> <code>{Titre}</code> <code>{Structure}</code> <code>{Collectivite}</code> <code>{Email_a_utiliser}</code> <code>{Lien_Desinscription}</code>. Le lien de désinscription est ajouté automatiquement en pied de message s\'il est absent.</div>';
     html += '<div style="margin-top:14px; display:flex; gap:8px;">';
     html += '<button class="btn btn-primary" onclick="saveTemplate(' + current.id + ')">Enregistrer</button>';
     html += '<button class="btn btn-danger" onclick="deleteTemplate(' + current.id + ')">Supprimer</button>';
