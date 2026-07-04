@@ -415,6 +415,18 @@ async function submitNewContact() {
 // FICHE CONTACT (clic sur une ligne)
 // =============================================================================
 
+function urlFieldHtml(inputId, label, value) {
+  var isUrl = /^https?:\/\//i.test(value || '');
+  var html = '<div class="form-field"><label>' + esc(label) + '</label>';
+  html += '<div style="display:flex; gap:6px;">';
+  html += '<input type="text" id="' + inputId + '" value="' + esc(value) + '" style="flex:1;">';
+  if (isUrl) {
+    html += '<a href="' + esc(value) + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm" title="Ouvrir le lien" style="text-decoration:none; display:flex; align-items:center; flex-shrink:0;">↗</a>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
 function selectOptions(id, choices, current, includeBlank) {
   var html = '<select id="' + id + '">';
   if (includeBlank) html += '<option value=""' + (!current ? ' selected' : '') + '>—</option>';
@@ -458,8 +470,8 @@ function openContactDetailModal(id) {
   html += '<div class="form-field"><label>Réponse</label>' + selectOptions('fc-reponse', REPONSE_CHOICES, c.Reponse, false) + '</div>';
   html += '<div class="form-field"><label>Date d\'envoi</label><input type="date" id="fc-date-envoi" value="' + gristValueToDateInput(c.Date_Envoi) + '"></div>';
   html += '<div class="form-field"><label>Date de réponse</label><input type="date" id="fc-date-reponse" value="' + gristValueToDateInput(c.Date_reponse) + '"></div>';
-  html += '<div class="form-field"><label>Source (email)</label><input type="text" id="fc-source-email" value="' + esc(c.Source_email) + '"></div>';
-  html += '<div class="form-field"><label>Source (nom/poste)</label><input type="text" id="fc-source-nom" value="' + esc(c.Source_nom) + '"></div>';
+  html += urlFieldHtml('fc-source-email', 'Source (email)', c.Source_email);
+  html += urlFieldHtml('fc-source-nom', 'Source (nom/poste)', c.Source_nom);
   html += '<div class="form-field form-field-full"><label style="display:flex; flex-direction:row; align-items:center; gap:8px; text-transform:none; font-size:13px;"><input type="checkbox" id="fc-opposition" ' + (c.Opposition ? 'checked' : '') + ' style="width:auto;"> Opposition exprimée (ne plus jamais recontacter)</label></div>';
   html += '<div class="form-field form-field-full"><label>Motif de ne pas contacter</label><input type="text" id="fc-motif" value="' + esc(c.Motif_ne_pas_contacter) + '"></div>';
 
