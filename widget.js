@@ -229,6 +229,7 @@ function renderContactsTab() {
     html += '<option value="' + t.id + '"' + (t.id === currentTemplateId ? ' selected' : '') + '>' + esc(t.Nom) + '</option>';
   });
   html += '</select>';
+  html += '<button class="btn btn-sm" onclick="assignTemplateToSelection()" ' + (selectedCount ? '' : 'disabled') + '>Assigner ce modèle</button>';
   html += '<button class="btn btn-primary btn-sm" onclick="openSendModal()" ' + (selectedCount ? '' : 'disabled') + '>✉️ Envoyer à la sélection</button>';
   html += '</div>';
 
@@ -327,6 +328,19 @@ async function markOppositionSelection() {
   ]);
   ids.forEach(function (id) { contactsById[id].Opposition = true; contactsById[id].Statut = 'Opposition/refus'; });
   showToast(ids.length + ' contact(s) marqué(s) en opposition.', 'success');
+  renderContactsTab();
+}
+
+async function assignTemplateToSelection() {
+  var ids = Object.keys(selectedIds).filter(function (id) { return selectedIds[id]; }).map(Number);
+  if (ids.length === 0) return;
+  var templateId = Number(document.getElementById('bulk-template-select').value);
+  currentTemplateId = templateId;
+  await grist.docApi.applyUserActions([
+    ['BulkUpdateRecord', CONTACTS_TABLE, ids, { Template: ids.map(function () { return templateId; }) }]
+  ]);
+  await loadAllData();
+  showToast(ids.length + ' contact(s) assigné(s) au modèle "' + esc(templatesById[templateId].Nom) + '".', 'success');
   renderContactsTab();
 }
 
