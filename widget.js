@@ -543,7 +543,10 @@ function openSendModal(singleContactId) {
   var ids = singleContactId ? [singleContactId] : Object.keys(selectedIds).filter(function (id) { return selectedIds[id]; }).map(Number);
   if (ids.length === 0) { showToast('Aucun contact sélectionné.', 'error'); return; }
 
-  var eligible = ids.filter(function (id) { var c = contactsById[id]; return c && c.Statut === 'À contacter' && !c.Opposition; });
+  var eligible = ids.filter(function (id) {
+    var c = contactsById[id];
+    return c && c.Statut === 'À contacter' && !c.Opposition && !c.Motif_ne_pas_contacter;
+  });
   var skipped = ids.filter(function (id) { return eligible.indexOf(id) === -1; });
 
   var selectedTemplateId = currentTemplateId || (templates[0] && templates[0].id);
@@ -558,7 +561,7 @@ function openSendModal(singleContactId) {
   html += '<div class="modal-body">';
 
   if (skipped.length > 0) {
-    html += '<div class="warning-box">' + skipped.length + ' contact(s) ignoré(s) : statut différent de "À contacter" ou opposition exprimée. Utilisez "Valider → À contacter" d\'abord si besoin.</div>';
+    html += '<div class="warning-box">' + skipped.length + ' contact(s) ignoré(s) : statut différent de "À contacter", opposition exprimée, ou un motif de ne pas contacter est renseigné. Utilisez "Valider → À contacter" d\'abord si besoin.</div>';
   }
   if (eligible.length === 0) {
     html += '<div class="error-box">Aucun contact éligible. Rien à envoyer.</div>';
