@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Grist widget - liste de contacts, modèles d'email, envoi individuel/groupé via n8n (prospection ESN)",
   "scripts": {
-    "dev": "python3 -m http.server 8093"
+    "dev": "python3 serve.py"
   },
   "grist": {
     "name": "Marie Emailing",

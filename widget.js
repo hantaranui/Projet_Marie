@@ -339,38 +339,31 @@ var TYPE_EMAIL_CHOICES = ['officiel', 'générique', 'reconstitué', 'corrigé']
 function openNewContactModal() {
   var modalContainer = document.getElementById('modal-container');
   var html = '<div class="modal-overlay" onclick="if(event.target===this) closeModal()">';
-  html += '<div class="modal">';
+  html += '<div class="modal modal-wide">';
   html += '<div class="modal-header"><h2>Nouveau contact</h2><button class="modal-close" onclick="closeModal()">✕</button></div>';
-  html += '<div class="modal-body">';
+  html += '<div class="modal-body"><div class="form-grid">';
 
-  html += '<div class="field-label">Département *</div>';
-  html += '<select id="nc-departement">';
+  html += '<div class="form-field"><label>Département *</label><select id="nc-departement">';
   departements.forEach(function (d) {
     html += '<option value="' + d.id + '">' + esc(d.Nom) + '</option>';
   });
-  html += '</select>';
+  html += '</select></div>';
+  html += '<div class="form-field"><label>Service ciblé</label><input type="text" id="nc-service"></div>';
 
-  html += '<div class="field-label">Prénom *</div>';
-  html += '<input type="text" id="nc-prenom">';
-  html += '<div class="field-label">Nom *</div>';
-  html += '<input type="text" id="nc-nom">';
-  html += '<div class="field-label">Titre</div>';
-  html += '<input type="text" id="nc-titre">';
-  html += '<div class="field-label">Service ciblé</div>';
-  html += '<input type="text" id="nc-service">';
+  html += '<div class="form-field"><label>Prénom *</label><input type="text" id="nc-prenom"></div>';
+  html += '<div class="form-field"><label>Nom *</label><input type="text" id="nc-nom"></div>';
 
-  html += '<div class="field-label">Email trouvée (laisser vide pour laisser la formule le déduire automatiquement)</div>';
-  html += '<input type="text" id="nc-email" placeholder="ex. prenom.nom@domaine.fr">';
+  html += '<div class="form-field form-field-full"><label>Titre</label><input type="text" id="nc-titre"></div>';
 
-  html += '<div class="field-label">Type d\'e-mail</div>';
-  html += '<select id="nc-type"><option value="">Automatique (déduit de l\'e-mail saisi)</option>';
+  html += '<div class="form-field"><label>Email trouvée</label><input type="text" id="nc-email" placeholder="ex. prenom.nom@domaine.fr"></div>';
+  html += '<div class="form-field"><label>Type d\'e-mail</label><select id="nc-type"><option value="">Automatique (déduit de l\'e-mail saisi)</option>';
   TYPE_EMAIL_CHOICES.forEach(function (t) {
     html += '<option value="' + esc(t) + '">' + esc(t) + '</option>';
   });
-  html += '</select>';
-  html += '<div class="variables-hint">Si "officiel", l\'e-mail saisi est repris exactement tel quel dans Email à utiliser (pas de mise en minuscule) — utilisez ce choix quand vous copiez une adresse trouvée telle quelle sur une source officielle.</div>';
+  html += '</select></div>';
+  html += '<div class="form-field-full variables-hint">Laissez l\'e-mail vide pour laisser la formule le déduire automatiquement. Si "officiel", l\'e-mail saisi est repris exactement tel quel dans Email à utiliser (pas de mise en minuscule) — utilisez ce choix quand vous copiez une adresse trouvée telle quelle sur une source officielle.</div>';
 
-  html += '</div>';
+  html += '</div></div>';
   html += '<div class="modal-footer">';
   html += '<button class="btn" onclick="closeModal()">Annuler</button>';
   html += '<button class="btn btn-primary" onclick="submitNewContact()">Ajouter</button>';
@@ -442,44 +435,40 @@ function openContactDetailModal(id) {
   html += '<div class="modal-header"><h2>' + esc((c.Prenom + ' ' + c.Nom).trim() || 'Contact') + '</h2><button class="modal-close" onclick="closeModal()">✕</button></div>';
   html += '<div class="modal-body"><div class="form-grid">';
 
-  html += '<div><div class="field-label">Département</div><select id="fc-departement">';
+  html += '<div class="form-section-title">Identité</div>';
+  html += '<div class="form-field"><label>Département</label><select id="fc-departement">';
   departements.forEach(function (d) {
     html += '<option value="' + d.id + '"' + (c.Departement === d.id ? ' selected' : '') + '>' + esc(d.Nom) + '</option>';
   });
   html += '</select></div>';
-  html += '<div><div class="field-label">Service ciblé</div><input type="text" id="fc-service" value="' + esc(c.Service) + '"></div>';
+  html += '<div class="form-field"><label>Service ciblé</label><input type="text" id="fc-service" value="' + esc(c.Service) + '"></div>';
+  html += '<div class="form-field"><label>Prénom</label><input type="text" id="fc-prenom" value="' + esc(c.Prenom) + '"></div>';
+  html += '<div class="form-field"><label>Nom</label><input type="text" id="fc-nom" value="' + esc(c.Nom) + '"></div>';
+  html += '<div class="form-field form-field-full"><label>Titre</label><input type="text" id="fc-titre" value="' + esc(c.Titre) + '"></div>';
 
-  html += '<div><div class="field-label">Prénom</div><input type="text" id="fc-prenom" value="' + esc(c.Prenom) + '"></div>';
-  html += '<div><div class="field-label">Nom</div><input type="text" id="fc-nom" value="' + esc(c.Nom) + '"></div>';
+  html += '<div class="form-section-title">Adresse e-mail</div>';
+  html += '<div class="form-field"><label>Email corrigé (correction manuelle)</label><input type="text" id="fc-email-corrige" value="' + esc(c.Email_corrige) + '"></div>';
+  html += '<div class="form-field"><label>Email trouvée (n8n / à la création)</label><input type="text" id="fc-email-trouvee" value="' + esc(c.Email_trouvee) + '"></div>';
+  html += '<div class="form-field"><label>Type d\'e-mail</label>' + selectOptions('fc-type', TYPE_EMAIL_CHOICES, c.Type_email, true) + '</div>';
+  html += '<div class="form-field"><label>Score de confiance</label>' + selectOptions('fc-score', ['100 - Email trouvé officiellement sur le site', '90 - Email corrigé par humain / validé Hunter.io', '80 - Format email confirmé sur le même domaine', '60 - Email reconstitué sans validation', '40 - Nom trouvé mais email incertain', '20 - Aucune source fiable'], c.Score_confiance, true) + '</div>';
+  html += '<div class="form-field form-field-full"><label>Email à utiliser (calculé automatiquement)</label><div class="readonly-field">' + esc(c.Email_a_utiliser || '—') + '</div></div>';
 
-  html += '<div class="field-full"><div class="field-label">Titre</div><input type="text" id="fc-titre" value="' + esc(c.Titre) + '"></div>';
+  html += '<div class="form-section-title">Suivi de prospection</div>';
+  html += '<div class="form-field"><label>Statut</label>' + selectOptions('fc-statut', STATUT_CHOICES, c.Statut, false) + '</div>';
+  html += '<div class="form-field"><label>Réponse</label>' + selectOptions('fc-reponse', REPONSE_CHOICES, c.Reponse, false) + '</div>';
+  html += '<div class="form-field"><label>Date d\'envoi</label><input type="date" id="fc-date-envoi" value="' + gristValueToDateInput(c.Date_Envoi) + '"></div>';
+  html += '<div class="form-field"><label>Date de réponse</label><input type="date" id="fc-date-reponse" value="' + gristValueToDateInput(c.Date_reponse) + '"></div>';
+  html += '<div class="form-field"><label>Source (email)</label><input type="text" id="fc-source-email" value="' + esc(c.Source_email) + '"></div>';
+  html += '<div class="form-field"><label>Source (nom/poste)</label><input type="text" id="fc-source-nom" value="' + esc(c.Source_nom) + '"></div>';
+  html += '<div class="form-field form-field-full"><label style="display:flex; flex-direction:row; align-items:center; gap:8px; text-transform:none; font-size:13px;"><input type="checkbox" id="fc-opposition" ' + (c.Opposition ? 'checked' : '') + ' style="width:auto;"> Opposition exprimée (ne plus jamais recontacter)</label></div>';
+  html += '<div class="form-field form-field-full"><label>Motif de ne pas contacter</label><input type="text" id="fc-motif" value="' + esc(c.Motif_ne_pas_contacter) + '"></div>';
 
-  html += '<div><div class="field-label">Email corrigé (correction manuelle)</div><input type="text" id="fc-email-corrige" value="' + esc(c.Email_corrige) + '"></div>';
-  html += '<div><div class="field-label">Email trouvée (n8n / à la création)</div><input type="text" id="fc-email-trouvee" value="' + esc(c.Email_trouvee) + '"></div>';
-
-  html += '<div><div class="field-label">Type d\'e-mail</div>' + selectOptions('fc-type', TYPE_EMAIL_CHOICES, c.Type_email, true) + '</div>';
-  html += '<div><div class="field-label">Score de confiance</div>' + selectOptions('fc-score', ['100 - Email trouvé officiellement sur le site', '90 - Email corrigé par humain / validé Hunter.io', '80 - Format email confirmé sur le même domaine', '60 - Email reconstitué sans validation', '40 - Nom trouvé mais email incertain', '20 - Aucune source fiable'], c.Score_confiance, true) + '</div>';
-
-  html += '<div class="field-full"><div class="field-label">Email à utiliser (calculé automatiquement)</div><div class="readonly-field">' + esc(c.Email_a_utiliser || '—') + '</div></div>';
-
-  html += '<div><div class="field-label">Statut</div>' + selectOptions('fc-statut', STATUT_CHOICES, c.Statut, false) + '</div>';
-  html += '<div><div class="field-label">Réponse</div>' + selectOptions('fc-reponse', REPONSE_CHOICES, c.Reponse, false) + '</div>';
-
-  html += '<div><div class="field-label">Source (email)</div><input type="text" id="fc-source-email" value="' + esc(c.Source_email) + '"></div>';
-  html += '<div><div class="field-label">Source (nom/poste)</div><input type="text" id="fc-source-nom" value="' + esc(c.Source_nom) + '"></div>';
-
-  html += '<div><div class="field-label">Date d\'envoi</div><input type="date" id="fc-date-envoi" value="' + gristValueToDateInput(c.Date_Envoi) + '"></div>';
-  html += '<div><div class="field-label">Date de réponse</div><input type="date" id="fc-date-reponse" value="' + gristValueToDateInput(c.Date_reponse) + '"></div>';
-
-  html += '<div class="field-full"><label style="display:flex; align-items:center; gap:8px; font-size:13px;"><input type="checkbox" id="fc-opposition" ' + (c.Opposition ? 'checked' : '') + ' style="width:auto;"> Opposition exprimée (ne plus jamais recontacter)</label></div>';
-  html += '<div class="field-full"><div class="field-label">Motif de ne pas contacter</div><input type="text" id="fc-motif" value="' + esc(c.Motif_ne_pas_contacter) + '"></div>';
-
-  html += '<div class="field-full" style="display:flex; gap:16px; font-size:12px; color:var(--color-text-muted); margin-top:6px;">';
+  html += '<div class="form-field-full" style="display:flex; gap:16px; font-size:12px; color:var(--color-text-muted); margin-top:6px;">';
   html += '<span>Collectivité : <strong>' + esc(c.Collectivite) + '</strong></span>';
   html += '<span>Structure : <strong>' + esc(c.Structure) + '</strong></span>';
   html += '<span>Statut d\'envoi : <strong>' + esc(c.Statut_envoi) + '</strong></span>';
   html += '</div>';
-  if (c.Erreur_envoi) html += '<div class="field-full error-box">Erreur d\'envoi : ' + esc(c.Erreur_envoi) + '</div>';
+  if (c.Erreur_envoi) html += '<div class="form-field-full error-box" style="margin-top:10px;">Erreur d\'envoi : ' + esc(c.Erreur_envoi) + '</div>';
 
   html += '</div></div>';
   html += '<div class="modal-footer">';
@@ -866,41 +855,32 @@ function openDepartementModal(id) {
   var d = id ? departementsById[id] : null;
   var modalContainer = document.getElementById('modal-container');
   var html = '<div class="modal-overlay" onclick="if(event.target===this) closeModal()">';
-  html += '<div class="modal">';
+  html += '<div class="modal modal-wide">';
   html += '<div class="modal-header"><h2>' + (d ? 'Modifier le département' : 'Nouveau département') + '</h2><button class="modal-close" onclick="closeModal()">✕</button></div>';
-  html += '<div class="modal-body">';
+  html += '<div class="modal-body"><div class="form-grid">';
 
-  html += '<div class="field-label">Nom *</div>';
-  html += '<input type="text" id="dep-nom" value="' + (d ? esc(d.Nom) : '') + '" placeholder="ex. Essonne">';
-  html += '<div class="field-label">Structure (code court)</div>';
-  html += '<input type="text" id="dep-structure" value="' + (d ? esc(d.Structure) : '') + '" placeholder="ex. CD91">';
-  html += '<div class="field-label">Code département</div>';
-  html += '<input type="text" id="dep-code" value="' + (d ? esc(d.Code_departement) : '') + '" placeholder="ex. 91">';
-  html += '<div class="field-label">Nom complet de la structure</div>';
-  html += '<input type="text" id="dep-nom-structure" value="' + (d ? esc(d.Nom_Structure) : '') + '" placeholder="ex. Conseil départemental de l\'Essonne">';
-  html += '<div class="field-label">Site officiel</div>';
-  html += '<input type="text" id="dep-site" value="' + (d ? esc(d.Site_officiel) : '') + '" placeholder="https://...">';
-  html += '<div class="field-label">Domaine e-mail *</div>';
-  html += '<input type="text" id="dep-domaine" value="' + (d ? esc(d.Domaine_email) : '') + '" placeholder="ex. essonne.fr">';
+  html += '<div class="form-field"><label>Nom *</label><input type="text" id="dep-nom" value="' + (d ? esc(d.Nom) : '') + '" placeholder="ex. Essonne"></div>';
+  html += '<div class="form-field"><label>Structure (code court)</label><input type="text" id="dep-structure" value="' + (d ? esc(d.Structure) : '') + '" placeholder="ex. CD91"></div>';
+  html += '<div class="form-field"><label>Code département</label><input type="text" id="dep-code" value="' + (d ? esc(d.Code_departement) : '') + '" placeholder="ex. 91"></div>';
+  html += '<div class="form-field"><label>Domaine e-mail *</label><input type="text" id="dep-domaine" value="' + (d ? esc(d.Domaine_email) : '') + '" placeholder="ex. essonne.fr"></div>';
+  html += '<div class="form-field form-field-full"><label>Nom complet de la structure</label><input type="text" id="dep-nom-structure" value="' + (d ? esc(d.Nom_Structure) : '') + '" placeholder="ex. Conseil départemental de l\'Essonne"></div>';
+  html += '<div class="form-field form-field-full"><label>Site officiel</label><input type="text" id="dep-site" value="' + (d ? esc(d.Site_officiel) : '') + '" placeholder="https://..."></div>';
 
-  html += '<div class="field-label">Format e-mail</div>';
-  html += '<select id="dep-format"><option value="">Non confirmé</option>';
+  html += '<div class="form-field"><label>Format e-mail</label><select id="dep-format"><option value="">Non confirmé</option>';
   FORMAT_EMAIL_CHOICES.forEach(function (f) {
     html += '<option value="' + esc(f) + '"' + (d && d.Format_email === f ? ' selected' : '') + '>' + esc(f) + '</option>';
   });
-  html += '</select>';
+  html += '</select></div>';
 
-  html += '<div class="field-label">Mots-clés de recherche</div>';
-  html += '<input type="text" id="dep-motscles" value="' + (d ? esc(d.Mots_cles_recherche) : '') + '">';
-
-  html += '<div class="field-label">Statut d\'enrichissement</div>';
-  html += '<select id="dep-statut-enrichissement">';
+  html += '<div class="form-field"><label>Statut d\'enrichissement</label><select id="dep-statut-enrichissement">';
   STATUT_ENRICHISSEMENT_CHOICES.forEach(function (s) {
     html += '<option value="' + esc(s) + '"' + (d ? (d.Statut_enrichissement === s ? ' selected' : '') : (s === 'À enrichir' ? ' selected' : '')) + '>' + esc(s) + '</option>';
   });
-  html += '</select>';
+  html += '</select></div>';
 
-  html += '</div>';
+  html += '<div class="form-field form-field-full"><label>Mots-clés de recherche</label><input type="text" id="dep-motscles" value="' + (d ? esc(d.Mots_cles_recherche) : '') + '"></div>';
+
+  html += '</div></div>';
   html += '<div class="modal-footer">';
   if (d) html += '<button class="btn btn-danger" onclick="deleteDepartement(' + d.id + ')">Supprimer</button>';
   html += '<button class="btn" onclick="closeModal()">Annuler</button>';

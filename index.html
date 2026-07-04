@@ -139,26 +139,48 @@
     .toast-error { background: var(--color-red); }
     .toast-info { background: var(--color-primary); }
 
-    /* ===== SEND MODAL ===== */
+    /* ===== MODAL ===== */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(20,20,30,.45); display: flex;
-      align-items: center; justify-content: center; z-index: 500;
+      position: fixed; inset: 0; background: rgba(20,20,30,.5); display: flex;
+      align-items: center; justify-content: center; z-index: 500; padding: 24px;
     }
-    .modal { background: #fff; border-radius: 12px; width: 560px; max-width: 92vw; max-height: 86vh; overflow: auto; }
-    .modal-wide { width: 760px; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
-    .form-grid .field-full { grid-column: 1 / -1; }
-    .readonly-field { padding: 8px 10px; background: #F3F4F8; border-radius: 8px; font-size: 13px; color: var(--color-text-muted); word-break: break-all; }
-    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
-    .modal-header h2 { font-size: 16px; }
-    .modal-close { border: none; background: none; font-size: 18px; color: var(--color-text-muted); }
-    .modal-body { padding: 16px 20px; }
-    .modal-body input[type="text"], .modal-body select, .modal-body textarea {
-      width: 100%; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 2px;
+    .modal {
+      background: #fff; border-radius: 16px; width: 100%; max-width: 560px; max-height: 88vh;
+      display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(20,20,40,.25);
     }
-    .modal-footer { padding: 14px 20px; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 10px; }
-    .warning-box { background: #FEF3E2; border: 1px solid var(--color-orange); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 10px; }
-    .error-box { background: #FDEDED; border: 1px solid var(--color-red); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 10px; }
+    .modal-wide { max-width: 760px; }
+    .modal-header {
+      padding: 20px 26px; border-bottom: 1px solid var(--color-border);
+      display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+    }
+    .modal-header h2 { font-size: 18px; font-weight: 700; }
+    .modal-close { border: none; background: none; font-size: 20px; color: var(--color-text-muted); line-height: 1; }
+    .modal-body { padding: 22px 26px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 16px 26px; border-top: 1px solid var(--color-border);
+      display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;
+    }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field-full { grid-column: 1 / -1; }
+    .form-field label {
+      font-size: 11px; font-weight: 700; color: var(--color-text-muted);
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .form-field input[type="text"], .form-field input[type="date"], .form-field select, .form-field textarea {
+      width: 100%; padding: 9px 11px; border: 1px solid var(--color-border); border-radius: 9px; font-size: 14px; font-family: inherit;
+    }
+    .form-field textarea { resize: vertical; }
+    .readonly-field { padding: 9px 11px; background: #F3F4F8; border-radius: 9px; font-size: 13px; color: var(--color-text-muted); word-break: break-all; }
+    .form-section-title {
+      grid-column: 1 / -1; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em;
+      color: var(--color-primary); margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--color-border);
+    }
+    .form-section-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+    .warning-box { background: #FEF3E2; border: 1px solid var(--color-orange); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
+    .error-box { background: #FDEDED; border: 1px solid var(--color-red); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
   </style>
 </head>
 <body>
