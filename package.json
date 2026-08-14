@@ -1,16 +1,18 @@
 {
-  "name": "@hantarabari/marie-emailing-widget",
+  "name": "@hantarabari/emailing-prospection-widget",
   "version": "1.0.0",
-  "description": "Grist widget - liste de contacts, modèles d'email, envoi individuel/groupé via n8n (prospection ESN)",
+  "description": "Widget Grist de préparation et de suivi des envois de prospection traités par n8n",
   "scripts": {
-    "dev": "python3 serve.py"
+    "dev": "python3 serve.py",
+    "test": "node --test",
+    "check": "node --check widget.js && node --check rules.js && node --test"
   },
   "grist": {
-    "name": "Marie Emailing",
-    "widgetId": "@hantarabari/marie-emailing-widget",
+    "name": "Emailing Prospection",
+    "widgetId": "@hantarabari/emailing-prospection-widget",
     "published": false,
     "accessLevel": "full",
     "renderAfterReady": true,
-    "description": "Liste de contacts filtrable, modèles d'email avec variables de fusion, envoi individuel/groupé via webhook n8n, garde-fous RGPD (validation manuelle avant envoi, lien de désinscription obligatoire)."
+    "description": "Liste de contacts filtrable, modèles avec variables de fusion, préparation des envois pour n8n et garde-fous RGPD."
   }
 }
